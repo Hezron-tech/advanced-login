@@ -5,6 +5,7 @@ const mailService = require('./mail-service');
 const tokenService = require('./token-service');
 const UserDto = require('../dtos/user-dto');
 const ApiError = require('../exceptions/api-error');
+const TokenModel = require('../models/token-model');
 
 class UserService {
 
@@ -61,6 +62,42 @@ class UserService {
 
         return { ...tokens, user: userDto }
 
+    }
+
+    async removeToken(refreshToken) {
+        const tokenData = await TokenModel.deleteOne({ refreshToken });
+        return tokenData;
+    }
+
+    async refresh(refreshToken) {
+        if (!refreshToken) {
+            throw ApiError.UnauthorizedError();
+        }
+        
+        // TOKENIN DUZGUN OLMAGI
+        const userData = tokenService.validateRefreshToken(refreshToken);
+
+        // TOKENIN VAR OLMAGI
+        const tokenFromDb = await tokenService.findToken(refreshToken);
+
+        if (!userData || !tokenFromDb) {
+            throw ApiError.UnauthorizedError()
+        }
+
+        const user = await UserModel.findById(userData.id);
+        const userDto = new UserDto(user);
+        const tokens = tokenService.generateTokens({ ...userDto });
+
+
+        await tokenService.saveToken(userDto.id, tokens.refreshToken);
+        return { ...tokens, user: userDto }
+
+    }
+
+    async getAllUsers() {
+        const users = await UserModel.find();
+
+        return users;
     }
 }
 
