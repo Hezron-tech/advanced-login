@@ -58,6 +58,7 @@ class UserService {
         const userDto = new UserDto(user);
 
         const tokens = tokenService.generateTokens({ ...userDto });
+
         await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
         return { ...tokens, user: userDto }
@@ -73,18 +74,21 @@ class UserService {
         if (!refreshToken) {
             throw ApiError.UnauthorizedError();
         }
-        
+
         // TOKENIN DUZGUN OLMAGI
         const userData = tokenService.validateRefreshToken(refreshToken);
 
+
         // TOKENIN VAR OLMAGI
         const tokenFromDb = await tokenService.findToken(refreshToken);
+       
 
         if (!userData || !tokenFromDb) {
             throw ApiError.UnauthorizedError()
         }
 
         const user = await UserModel.findById(userData.id);
+
         const userDto = new UserDto(user);
         const tokens = tokenService.generateTokens({ ...userDto });
 
